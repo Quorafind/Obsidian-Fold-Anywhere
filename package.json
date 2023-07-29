@@ -1,5 +1,5 @@
 {
-	"name": "obsidian-custom-plugin-starter",
+	"name": "fold-anywhere",
 	"version": "0.0.1",
 	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
 	"main": "main.js",
@@ -11,10 +11,22 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"peerDependencies": {
+		"@codemirror/language": "0.19.x",
+		"@codemirror/rangeset": "0.19.x",
+		"@codemirror/view": "0.19.x"
+	},
 	"devDependencies": {
-		"@types/node": "^16.11.6",
-		"@typescript-eslint/eslint-plugin": "5.29.0",
-		"@typescript-eslint/parser": "5.29.0",
+		"@codemirror/basic-setup": "^0.20.0",
+		"@codemirror/buildhelper": "^1.0.0",
+		"@codemirror/fold": "^0.19.4",
+		"@codemirror/lang-css": "^6.2.0",
+		"@codemirror/language": "^6.8.0",
+		"@codemirror/rangeset": "^0.19.9",
+		"@codemirror/state": "^6.2.1",
+		"@codemirror/view": "^6.15.0",
+		"@typescript-eslint/eslint-plugin": "5.13.0",
+		"@typescript-eslint/parser": "5.13.0",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.14.47",
 		"obsidian": "latest",
