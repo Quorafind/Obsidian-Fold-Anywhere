@@ -11,9 +11,14 @@ function createFoldRangesFromWholeDoc(state: EditorState): { from: number, to: n
 
     for (let i = 1; i <= state.doc.lines; i++) { // Line numbers start from 1
         const line = state.doc.line(i);
-        if (startRegex.test(line.text)) {
-            startStack.push(line.to);
-        } else if (endRegex.test(line.text) && startStack.length) {
+
+        // Modify this part
+        let match;
+        while ((match = startRegex.exec(line.text)) !== null) {
+            startStack.push(line.from + match.index);
+        }
+
+        if (endRegex.test(line.text) && startStack.length) {
             let start = startStack.pop();
             if (start !== undefined) {
                 ranges.push({ from: start, to: line.to });
