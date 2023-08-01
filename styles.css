@@ -1,8 +1,18 @@
-/*
+.cm-fold-anywhere-icon {
+    cursor: pointer;
+    opacity: .5;
+    color: var(--color-red);
+    transition: opacity .2s ease-in;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.cm-fold-anywhere-icon:hover {
+    opacity: 1;
+}
 
-If your plugin does not need CSS, delete this file.
+.cm-fold-anywhere-icon span.fold-icon, .cm-fold-anywhere-icon span.unfold-icon {
+    vertical-align: middle;
+    height: 22px;
+    display: inline-flex;
+}
 
-*/
+

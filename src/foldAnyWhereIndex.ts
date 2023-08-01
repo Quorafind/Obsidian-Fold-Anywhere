@@ -1,6 +1,7 @@
-import { Editor, MarkdownView, Plugin } from 'obsidian';
-import FoldingExtension, { foldAll, unfoldAll } from "./foldAnywhereWidget";
-import { foldAllPlugin } from "./foldWidget";
+import { addIcon, Editor, MarkdownView, Plugin } from 'obsidian';
+import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldAnywhereWidget";
+import { foldAllPlugin } from "./widgets/foldWidget";
+import { foldable } from "@codemirror/language";
 
 export default class MyPlugin extends Plugin {
 
@@ -22,6 +23,10 @@ export default class MyPlugin extends Plugin {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const editorView = (editor as any).cm;
                 foldAll(editorView);
+
+				const selection = editor.getCursor("from");
+				const linePos = editor.posToOffset(selection);
+				const foldRegion = foldable((editor as any).cm.state, linePos, linePos);
 		    }
 		});
 
@@ -34,6 +39,45 @@ export default class MyPlugin extends Plugin {
                 unfoldAll(editorView);
             }
 		});
+
+		this.addCommand({
+		    id: 'fold-selected-range',
+		    name: 'Fold Selected Range',
+		    editorCallback: (editor: Editor, view: MarkdownView) => {
+				const selection = editor.getSelection();
+
+				if(!selection.trim()) return;
+
+				editor.replaceSelection(` %% REGION %% ${selection} %% ENDREGION %% `)
+				foldAll((editor as any).cm);
+		    }
+		});
+
+		this.addCommand({
+		    id: 'mark-as-start',
+		    name: 'Mark as Start',
+		    editorCallback: (editor: Editor, view: MarkdownView) => {
+				const selection = editor.getSelection();
+
+				if(selection.trim()) return;
+
+				editor.replaceSelection(` %% REGION %% `);
+		    }
+		});
+
+		this.addCommand({
+			id: 'mark-as-end',
+			name: 'Mark as End',
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				const selection = editor.getSelection();
+
+				if(selection.trim()) return;
+
+				editor.replaceSelection(` %% ENDREGION %% `);
+			}
+		});
 	}
+
+
 
 }
