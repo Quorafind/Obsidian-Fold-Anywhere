@@ -1,6 +1,6 @@
 .cm-fold-anywhere-icon {
     cursor: pointer;
-    opacity: .5;
+    opacity: .3;
     color: var(--color-red);
     transition: opacity .2s ease-in;
 }
@@ -15,4 +15,19 @@
     display: inline-flex;
 }
 
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
 
+.fold-anywhere-ask-modal div {
+    font-size: 20px;
+    text-align: center;
+}
+
+.fold-anywhere-ask-modal button {
+    width: 4rem;
+    margin-left: 3rem;
+    margin-right: 3rem;
+}
