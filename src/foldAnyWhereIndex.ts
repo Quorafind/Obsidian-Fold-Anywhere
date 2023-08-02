@@ -1,4 +1,16 @@
-import { addIcon, App, ButtonComponent, Editor, MarkdownView, Menu, MenuItem, Modal, Plugin, Setting } from 'obsidian';
+import {
+	addIcon,
+	App,
+	ButtonComponent,
+	Editor,
+	MarkdownView,
+	Menu,
+	MenuItem,
+	Modal,
+	Notice,
+	Plugin,
+	Setting
+} from 'obsidian';
 import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldAnywhereWidget";
 import { foldAllPlugin } from "./widgets/foldWidget";
 import { foldable } from "@codemirror/language";
@@ -86,24 +98,23 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 		    id: 'remove-all-markers',
 		    name: 'Remove All Markers In Current File',
-		    checkCallback: async (checking: boolean) => {
+			// Using callback instead of checkCallback because we want to using async/await
+		    callback: async () => {
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (markdownView) {
-					if (!checking) {
-						const file = markdownView.file;
-						let ready = false;
-						new AskModal(this.app, async (ready: boolean) => {
-							ready = ready;
-							if (ready) {
-								const fileContent = await this.app.vault.cachedRead(file);
-								const newFileContent = fileContent.replace(/(\s)?%% REGION %%|(\s)?%% ENDREGION %%/g, '');
-								await this.app.vault.modify(file, newFileContent);
-							}
-						}).open();
-					}
-
-					return true;
+					const file = markdownView.file;
+					let ready = false;
+					new AskModal(this.app, async (ready: boolean) => {
+						ready = ready;
+						if (ready) {
+							const fileContent = await this.app.vault.cachedRead(file);
+							const newFileContent = fileContent.replace(/(\s)?%% REGION %%|(\s)?%% ENDREGION %%/g, '');
+							await this.app.vault.modify(file, newFileContent);
+						}
+					}).open();
+					return;
 				}
+				new Notice('No active file open');
 			}
 		});
 	}

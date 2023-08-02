@@ -1,7 +1,7 @@
 {
 	"name": "fold-anywhere",
-	"version": "0.0.1",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"version": "1.0.0",
+	"description": "Set start and end marker, and then fold any text anywhere",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

@@ -1,9 +1,9 @@
 {
 	"id": "fold-anywhere",
 	"name": "Fold Anywhere",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
+	"description": "Set start and end marker, and then fold any text anywhere.",
 	"author": "Boninall",
 	"authorUrl": "https://github.com/Quorafind",
 	"fundingUrl": {
