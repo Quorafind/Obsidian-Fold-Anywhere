@@ -8,7 +8,7 @@ import {
     WidgetType
 } from "@codemirror/view";
 import { App, editorLivePreviewField, Menu, setIcon } from "obsidian";
-import { foldAll } from "./foldAnywhereWidget";
+import { foldAll } from "./foldService";
 
 type MarkType = "fold" | "unfold";
 

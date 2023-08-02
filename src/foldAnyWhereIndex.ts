@@ -1,18 +1,6 @@
-import {
-	addIcon,
-	App,
-	ButtonComponent,
-	Editor,
-	MarkdownView,
-	Menu,
-	MenuItem,
-	Modal,
-	Notice,
-	Plugin,
-	Setting
-} from 'obsidian';
-import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldAnywhereWidget";
-import { foldAllPlugin } from "./widgets/foldWidget";
+import { addIcon, App, ButtonComponent, Editor, MarkdownView, Menu, MenuItem, Modal, Notice, Plugin } from 'obsidian';
+import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldService";
+import { foldAllPlugin } from "./widgets/foldMarkerWidget";
 import { foldable } from "@codemirror/language";
 
 export default class MyPlugin extends Plugin {
@@ -37,22 +25,20 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 		    id: 'fold-current-range',
 		    name: 'Fold Between Start and End Marks',
-		    editorCallback: (editor: Editor, view: MarkdownView) => {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		    editorCallback: (editor: Editor) => {
 				const editorView = (editor as any).cm;
                 foldAll(editorView);
 
 				const selection = editor.getCursor("from");
 				const linePos = editor.posToOffset(selection);
-				const foldRegion = foldable((editor as any).cm.state, linePos, linePos);
-		    }
+				foldable((editor as any).cm.state, linePos, linePos);
+			}
 		});
 
 		this.addCommand({
 			id: 'unfold-current-range',
             name: 'Unfold Between Start and End Marks',
-            editorCallback: (editor: Editor, view: MarkdownView) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            editorCallback: (editor: Editor) => {
                 const editorView = (editor as any).cm;
                 unfoldAll(editorView);
             }
@@ -61,7 +47,7 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 		    id: 'fold-selected-text',
 		    name: 'Fold Selected Text',
-		    editorCallback: (editor: Editor, view: MarkdownView) => {
+		    editorCallback: (editor: Editor) => {
 				const selection = editor.getSelection();
 
 				if(!selection.trim()) return;
@@ -74,7 +60,7 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 		    id: 'mark-as-start',
 		    name: 'Mark as Start',
-		    editorCallback: (editor: Editor, view: MarkdownView) => {
+		    editorCallback: (editor: Editor) => {
 				const selection = editor.getSelection();
 
 				if(selection.trim()) return;
@@ -86,7 +72,7 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 			id: 'mark-as-end',
 			name: 'Mark as End',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
+			editorCallback: (editor: Editor) => {
 				const selection = editor.getSelection();
 
 				if(selection.trim()) return;
@@ -104,8 +90,8 @@ export default class MyPlugin extends Plugin {
 				if (markdownView) {
 					const file = markdownView.file;
 					let ready = false;
-					new AskModal(this.app, async (ready: boolean) => {
-						ready = ready;
+					new AskModal(this.app, async (already: boolean) => {
+						ready = already;
 						if (ready) {
 							const fileContent = await this.app.vault.cachedRead(file);
 							const newFileContent = fileContent.replace(/(\s)?%% REGION %%|(\s)?%% ENDREGION %%/g, '');
@@ -121,7 +107,7 @@ export default class MyPlugin extends Plugin {
 
 	registerContextMenu() {
 		this.registerEvent(
-			this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView) => {
+			this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor) => {
 				if (!editor) {
 					return;
 				}
