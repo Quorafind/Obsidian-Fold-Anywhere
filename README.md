@@ -15,6 +15,9 @@ A plugin for [Obsidian](https://obsidian.md) that allows you to fold any text an
   - `Fold Selected Text` - Fold the selected text
   - `Mark as Start` - Mark the current pos as the start of a fold
   - `Mark as End` - Mark the current pos as the end of a fold
+- Mouse
+  - `Click` - Fold the selected text
+  - `Ctrl + Click` - Remove selected mark
 
 ## Installation
 
