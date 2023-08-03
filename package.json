@@ -1,6 +1,6 @@
 {
 	"name": "fold-anywhere",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Set start and end marker, and then fold any text anywhere",
 	"main": "main.js",
 	"scripts": {
