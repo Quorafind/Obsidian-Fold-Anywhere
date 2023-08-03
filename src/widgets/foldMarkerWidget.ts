@@ -33,7 +33,7 @@ class FoldMarkWidget extends WidgetType {
 
     toDOM() {
         const creaseEl = createSpan("cm-fold-anywhere-icon");
-        const iconEl = creaseEl.createSpan(this.markType === "fold" ? "fold-icon" : "unfold-icon");
+        const iconEl = creaseEl.createSpan(this.markType === "fold" ? "fold-start" : "fold-end");
 
         let title: string, icon: string;
         if (this.markType === "fold") {
