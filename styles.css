@@ -1,15 +1,23 @@
 .cm-fold-anywhere-icon {
     cursor: pointer;
-    opacity: .3;
+    opacity: 0;
     color: var(--color-red);
-    transition: opacity .2s ease-in;
+    transition: opacity .1s ease-in;
 }
 
-.cm-fold-anywhere-icon:hover {
+.cm-contentContainer:hover .cm-fold-anywhere-icon {
+	opacity: 0.2;
+}
+
+.cm-line:hover .cm-fold-anywhere-icon, .cm-line.cm-active .cm-fold-anywhere-icon {
+	opacity: 0.5;
+}
+
+.cm-line:hover .cm-fold-anywhere-icon:hover {
     opacity: 1;
 }
 
-.cm-fold-anywhere-icon span.fold-icon, .cm-fold-anywhere-icon span.unfold-icon {
+.cm-fold-anywhere-icon span.fold-start, .cm-fold-anywhere-icon span.fold-end {
     vertical-align: middle;
     height: 22px;
     display: inline-flex;

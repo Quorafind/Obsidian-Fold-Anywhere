@@ -2,6 +2,7 @@ import { addIcon, App, ButtonComponent, Editor, MarkdownView, Menu, MenuItem, Mo
 import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldService";
 import { foldAllPlugin } from "./widgets/foldMarkerWidget";
 import { foldable } from "@codemirror/language";
+import { dealWithSelection, insertMark } from "./utils/line";
 
 export default class MyPlugin extends Plugin {
 
@@ -28,10 +29,6 @@ export default class MyPlugin extends Plugin {
 		    editorCallback: (editor: Editor) => {
 				const editorView = (editor as any).cm;
                 foldAll(editorView);
-
-				const selection = editor.getCursor("from");
-				const linePos = editor.posToOffset(selection);
-				foldable((editor as any).cm.state, linePos, linePos);
 			}
 		});
 
@@ -47,38 +44,19 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 		    id: 'fold-selected-text',
 		    name: 'Fold Selected Text',
-		    editorCallback: (editor: Editor) => {
-				const selection = editor.getSelection();
-
-				if(!selection.trim()) return;
-
-				editor.replaceSelection(` %% REGION %% ${selection} %% ENDREGION %% `)
-				foldAll((editor as any).cm);
-		    }
+		    editorCallback: (editor: Editor) => dealWithSelection(editor)
 		});
 
 		this.addCommand({
 		    id: 'mark-as-start',
 		    name: 'Mark as Start',
-		    editorCallback: (editor: Editor) => {
-				const selection = editor.getSelection();
-
-				if(selection.trim()) return;
-
-				editor.replaceSelection(` %% REGION %% `);
-		    }
+		    editorCallback: (editor: Editor) => insertMark(editor, 'start')
 		});
 
 		this.addCommand({
 			id: 'mark-as-end',
 			name: 'Mark as End',
-			editorCallback: (editor: Editor) => {
-				const selection = editor.getSelection();
-
-				if(selection.trim()) return;
-
-				editor.replaceSelection(` %% ENDREGION %% `);
-			}
+			editorCallback: (editor: Editor) => insertMark(editor, 'end')
 		});
 
 		this.addCommand({
@@ -120,33 +98,19 @@ export default class MyPlugin extends Plugin {
 						item.setIcon('fold-horizontal')
 							.setTitle('Fold Selected Text')
 							.setDisabled(!selection.trim())
-							.onClick(() => {
-								// Check if the head is line start
-								const cursor = editor.getCursor("from");
-								const lineStart = cursor.ch === 0;
-
-								editor.replaceSelection((lineStart ? ` ` : ``) + `%% REGION %% ${selection} %% ENDREGION %% `);
-								editor.setCursor(cursor.line, cursor.ch + 14);
-								foldAll((editor as any).cm);
-							})
+							.onClick(() => dealWithSelection(editor))
 					})
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('chevron-last')
 							.setTitle('Mark as Start')
 							.setDisabled(!!selection.trim())
-							.onClick(() => {
-								if(!selection.trim()) return;
-								editor.replaceSelection(` %% REGION %% `);
-							})
+							.onClick(() => insertMark(editor, 'start'))
 					})
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('chevron-first')
 							.setTitle('Mark as End')
 							.setDisabled(!!selection.trim())
-							.onClick(() => {
-								if(!selection.trim()) return;
-								editor.replaceSelection(` %% REGION %% `);
-							})
+							.onClick(() => insertMark(editor, 'end'))
 					})
 
 				})
