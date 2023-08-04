@@ -2,7 +2,7 @@
 
 A plugin for [Obsidian](https://obsidian.md) that allows you to fold any text anywhere.
 
-![Fold-AnyWhere](./assets/fold-anywhere.gif)
+![Fold-AnyWhere](./assets/Fold-Anywhere.gif)
 
 ## Usage
 
