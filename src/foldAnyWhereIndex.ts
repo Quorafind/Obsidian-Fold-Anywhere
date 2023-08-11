@@ -10,8 +10,7 @@ export default class MyPlugin extends Plugin {
 		this.registerIcons();
 		this.registerCommands();
 		this.registerContextMenu();
-		this.registerEditorExtension(FoldingExtension);
-		this.registerEditorExtension(foldAllPlugin(this.app));
+		this.registerEditorExtension([FoldingExtension, foldAllPlugin(this.app)]);
 	}
 
 	onunload() {

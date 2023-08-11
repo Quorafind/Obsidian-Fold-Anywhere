@@ -67,7 +67,7 @@ class FoldMarkWidget extends WidgetType {
                 return;
             }
             this.view.dispatch({
-                selection: { anchor: this.to || 0, head: this.to || 0 }
+                selection: { anchor: (this.markType === "fold" ? this.to : this.from) || 0, head: (this.markType === "fold" ? this.to : this.from) || 0 }
             });
             foldAll(this.view);
         });
