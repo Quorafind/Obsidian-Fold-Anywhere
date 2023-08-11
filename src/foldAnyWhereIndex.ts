@@ -1,7 +1,6 @@
 import { addIcon, App, ButtonComponent, Editor, MarkdownView, Menu, MenuItem, Modal, Notice, Plugin } from 'obsidian';
 import FoldingExtension, { foldAll, unfoldAll } from "./widgets/foldService";
 import { foldAllPlugin } from "./widgets/foldMarkerWidget";
-import { foldable } from "@codemirror/language";
 import { dealWithSelection, insertMark } from "./utils/line";
 
 export default class MyPlugin extends Plugin {
@@ -66,6 +65,7 @@ export default class MyPlugin extends Plugin {
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (markdownView) {
 					const file = markdownView.file;
+					if(!file) return;
 					let ready = false;
 					new AskModal(this.app, async (already: boolean) => {
 						ready = already;
