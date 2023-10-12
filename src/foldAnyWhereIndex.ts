@@ -92,7 +92,7 @@ export default class MyPlugin extends Plugin {
 
 				menu.addItem((item: MenuItem) => {
 					// @ts-ignore
-					const subMenu = item.setSection('action').setTitle(`Fold AnyWhere`).setIcon('chevrons-right-left').setSubmenu();
+					const subMenu = item.setSection('action').setTitle(`Fold anywhere`).setIcon('chevrons-right-left').setSubmenu();
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('fold-horizontal')
 							.setTitle('Fold selected text')
