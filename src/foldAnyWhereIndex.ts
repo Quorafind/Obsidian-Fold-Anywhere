@@ -23,7 +23,7 @@ export default class MyPlugin extends Plugin {
 	registerCommands() {
 		this.addCommand({
 		    id: 'fold-current-range',
-		    name: 'Fold Between Start and End Marks',
+		    name: 'Fold between start and end marks',
 		    editorCallback: (editor: Editor) => {
 				const editorView = (editor as any).cm;
                 foldAll(editorView);
@@ -32,7 +32,7 @@ export default class MyPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'unfold-current-range',
-            name: 'Unfold Between Start and End Marks',
+            name: 'Unfold between start and end marks',
             editorCallback: (editor: Editor) => {
                 const editorView = (editor as any).cm;
                 unfoldAll(editorView);
@@ -41,19 +41,19 @@ export default class MyPlugin extends Plugin {
 
 		this.addCommand({
 		    id: 'fold-selected-text',
-		    name: 'Fold Selected Text',
+		    name: 'Fold selected text',
 		    editorCallback: (editor: Editor) => dealWithSelection(editor)
 		});
 
 		this.addCommand({
 		    id: 'mark-as-start',
-		    name: 'Mark as Start',
+		    name: 'Mark as start',
 		    editorCallback: (editor: Editor) => insertMark(editor, 'start')
 		});
 
 		this.addCommand({
 			id: 'mark-as-end',
-			name: 'Mark as End',
+			name: 'Mark as end',
 			editorCallback: (editor: Editor) => insertMark(editor, 'end')
 		});
 
@@ -95,19 +95,19 @@ export default class MyPlugin extends Plugin {
 					const subMenu = item.setSection('action').setTitle(`Fold AnyWhere`).setIcon('chevrons-right-left').setSubmenu();
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('fold-horizontal')
-							.setTitle('Fold Selected Text')
+							.setTitle('Fold selected text')
 							.setDisabled(!selection.trim())
 							.onClick(() => dealWithSelection(editor))
 					})
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('chevron-last')
-							.setTitle('Mark as Start')
+							.setTitle('Mark as start')
 							.setDisabled(!!selection.trim())
 							.onClick(() => insertMark(editor, 'start'))
 					})
 					subMenu.addItem((item: MenuItem) => {
 						item.setIcon('chevron-first')
-							.setTitle('Mark as End')
+							.setTitle('Mark as end')
 							.setDisabled(!!selection.trim())
 							.onClick(() => insertMark(editor, 'end'))
 					})

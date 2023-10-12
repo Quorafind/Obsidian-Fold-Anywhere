@@ -39,3 +39,10 @@
     margin-left: 3rem;
     margin-right: 3rem;
 }
+
+.rendered-markdown .cm-time-mark-icon {
+	position: inherit;
+	display: inline-block;
+	opacity: 1;
+	color: var(--color-red);
+}

@@ -37,10 +37,10 @@ class FoldMarkWidget extends WidgetType {
 
         let title: string, icon: string;
         if (this.markType === "fold") {
-            title = "Remove Fold Start Mark";
+            title = "Remove fold start mark";
             icon = this.isFolded ? "goal" : "chevron-last";
         } else {
-            title = "Remove Fold End Mark";
+            title = "Remove fold end mark";
             icon = "chevron-first";
         }
         setIcon(iconEl, icon);
