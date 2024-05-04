@@ -1,11 +1,12 @@
 import { Editor } from "obsidian";
 import { foldAll } from "../widgets/foldService";
+import { FoldAnyWhereSettings } from "../foldAnyWhereIndex";
 
 type InsertMarkType = "start" | "end";
 
 const MARKLIST = {
 	start: '%% REGION %%',
-    end: '%% ENDREGION %%'
+	end: '%% ENDREGION %%'
 };
 const BLOCK_ID_REGEX = /\^[a-zA-Z0-9\-]{1,6}$/g;
 
@@ -17,34 +18,34 @@ const checkStartOrEnd = (editor: Editor) => {
 	const lineStart = fromCursor.ch === 0 || editor.getLine(fromCursor.line).charAt(fromCursor.ch - 1) === ' ';
 	const lineEnd = toCursor.ch === editor.getLine(toCursor.line).length || editor.getLine(toCursor.line).charAt(toCursor.ch) === ' ';
 
-	return { lineStart, lineEnd, toCursor };
-}
+	return {lineStart, lineEnd, toCursor};
+};
 
-const insertEndMarkBeforeBlockID = (content: string) => {
+const insertEndMarkBeforeBlockID = (content: string, end: string) => {
 	const match = content.match(BLOCK_ID_REGEX);
-	if(match) {
-		return content.replace(BLOCK_ID_REGEX, `%% ENDREGION %% ${match[0]}`);
+	if (match) {
+		return content.replace(BLOCK_ID_REGEX, `${end} ${match[0]}`);
 	} else {
-		return content + ` %% ENDREGION %%`;
+		return content + ` ${end}`;
 	}
-}
+};
 
-export const dealWithSelection = (editor: Editor) => {
+export const dealWithSelection = (insert: FoldAnyWhereSettings, editor: Editor) => {
 	const selection = editor.getSelection();
-	if(selection.trim().length === 0) return;
+	if (selection.trim().length === 0) return;
 
-	const { lineStart, lineEnd, toCursor } = checkStartOrEnd(editor);
+	const {lineStart, lineEnd, toCursor} = checkStartOrEnd(editor);
 
-	editor.replaceSelection((lineStart ? `` : ` `) + `%% REGION %% ${insertEndMarkBeforeBlockID(selection.trim())}` + (lineEnd ? `` : ` `));
+	editor.replaceSelection((lineStart ? `` : ` `) + `${insert.startMarker} ${insertEndMarkBeforeBlockID(selection.trim(), insert.endMarker)}` + (lineEnd ? `` : ` `));
 	editor.setCursor(toCursor.line, toCursor.ch + 14);
 
 	foldAll((editor as any).cm);
-}
+};
 
-export const insertMark = (editor: Editor, type: InsertMarkType) => {
+export const insertMark = (insert: FoldAnyWhereSettings, editor: Editor, type: InsertMarkType) => {
 	const selection = editor.getSelection();
-	if(selection.trim().length > 0) return;
+	if (selection.trim().length > 0) return;
 
-	const { lineStart, lineEnd } = checkStartOrEnd(editor);
-	editor.replaceSelection((lineStart ? `` : ` `) + MARKLIST[type] + (lineEnd ? (type === "start" ? ` ` : ``) : ` `));
-}
+	const {lineStart, lineEnd} = checkStartOrEnd(editor);
+	editor.replaceSelection((lineStart ? `` : ` `) + (type === 'start' ? insert.startMarker : insert.endMarker) + (lineEnd ? (type === "start" ? ` ` : ``) : ` `));
+};
