@@ -69,7 +69,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 		this.addCommand({
 			id: 'fold-selected-text',
 			name: 'Fold selected text',
-			editorCallback: (editor: Editor) => dealWithSelection(editor)
+			editorCallback: (editor: Editor) => dealWithSelection(this.settings, editor)
 		});
 
 		this.addCommand({
