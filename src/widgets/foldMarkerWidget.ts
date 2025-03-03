@@ -5,7 +5,7 @@ import {
 	MatchDecorator,
 	ViewPlugin,
 	ViewUpdate,
-	WidgetType
+	WidgetType,
 } from "@codemirror/view";
 import { App, editorLivePreviewField, Menu, setIcon } from "obsidian";
 import { foldAll } from "./foldService";
@@ -29,12 +29,18 @@ class FoldMarkWidget extends WidgetType {
 	}
 
 	eq(other: FoldMarkWidget) {
-		return other.view === this.view && other.from === this.from && other.to === this.to;
+		return (
+			other.view === this.view &&
+			other.from === this.from &&
+			other.to === this.to
+		);
 	}
 
 	toDOM() {
 		const creaseEl = createSpan("cm-fold-anywhere-icon");
-		const iconEl = creaseEl.createSpan(this.markType === "fold" ? "fold-start" : "fold-end");
+		const iconEl = creaseEl.createSpan(
+			this.markType === "fold" ? "fold-start" : "fold-end"
+		);
 
 		let title: string, icon: string;
 		if (this.markType === "fold") {
@@ -49,29 +55,28 @@ class FoldMarkWidget extends WidgetType {
 		creaseEl.addEventListener("click", (evt) => {
 			if (evt.ctrlKey || evt.metaKey) {
 				const menu = new Menu();
-				menu
-					.addItem((item) =>
-						item
-							.setTitle(title)
-							.setIcon("x")
-							.onClick(() => {
-								this.view.dispatch({
-									changes: {
-										from: this.from,
-										to: this.to,
-										insert: "",
-									},
-								});
-							})
-					)
-					.showAtMouseEvent(evt);
+				menu.addItem((item) =>
+					item
+						.setTitle(title)
+						.setIcon("x")
+						.onClick(() => {
+							this.view.dispatch({
+								changes: {
+									from: this.from,
+									to: this.to,
+									insert: "",
+								},
+							});
+						})
+				).showAtMouseEvent(evt);
 				return;
 			}
 			this.view.dispatch({
 				selection: {
-					anchor: (this.markType === "fold" ? this.to : this.from) || 0,
-					head: (this.markType === "fold" ? this.to : this.from) || 0
-				}
+					anchor:
+						(this.markType === "fold" ? this.to : this.from) || 0,
+					head: (this.markType === "fold" ? this.to : this.from) || 0,
+				},
 			});
 			foldAll(this.view);
 		});
@@ -92,7 +97,10 @@ export function foldAllPlugin(app: App, plugin: FoldAnyWherePlugin) {
 			decorator: MatchDecorator;
 
 			constructor(public view: EditorView) {
-				const regex = new RegExp(`((?<START>${plugin.settings.startMarker})|(?<END>${plugin.settings.endMarker}))`, 'g');
+				const regex = new RegExp(
+					`((?<START>${plugin.settings.startMarker})|(?<END>${plugin.settings.endMarker}))`,
+					"g"
+				);
 				this.decorator = new MatchDecorator({
 					regexp: regex,
 					decoration: this.getDeco.bind(this),
@@ -106,7 +114,13 @@ export function foldAllPlugin(app: App, plugin: FoldAnyWherePlugin) {
 				console.log(from, to, match.groups?.START ? "fold" : "unfold");
 
 				return Decoration.replace({
-					widget: new FoldMarkWidget(app, this.view, from, to, match.groups?.START ? "fold" : "unfold")
+					widget: new FoldMarkWidget(
+						app,
+						this.view,
+						from,
+						to,
+						match.groups?.START ? "fold" : "unfold"
+					),
 				});
 			}
 
@@ -116,14 +130,18 @@ export function foldAllPlugin(app: App, plugin: FoldAnyWherePlugin) {
 					return;
 				}
 
-				this.decorations = this.decorator.updateDeco(update, this.decorations);
+				this.decorations = this.decorator.updateDeco(
+					update,
+					this.decorations
+				);
 			}
 		},
 		{
 			decorations: (v) => v.decorations,
-			provide: plugin => EditorView.atomicRanges.of(view => {
-				return view.plugin(plugin)?.decorations || Decoration.none;
-			})
+			provide: (plugin) =>
+				EditorView.atomicRanges.of((view) => {
+					return view.plugin(plugin)?.decorations || Decoration.none;
+				}),
 		}
 	);
 }

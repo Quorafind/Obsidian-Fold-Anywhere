@@ -5,20 +5,23 @@ import { FoldAnyWhereSettings } from "../foldAnyWhereIndex";
 type InsertMarkType = "start" | "end";
 
 const MARKLIST = {
-	start: '%% REGION %%',
-	end: '%% ENDREGION %%'
+	start: "%% REGION %%",
+	end: "%% ENDREGION %%",
 };
 const BLOCK_ID_REGEX = /\^[a-zA-Z0-9\-]{1,6}$/g;
-
 
 const checkStartOrEnd = (editor: Editor) => {
 	const fromCursor = editor.getCursor("from");
 	const toCursor = editor.getCursor("to");
 
-	const lineStart = fromCursor.ch === 0 || editor.getLine(fromCursor.line).charAt(fromCursor.ch - 1) === ' ';
-	const lineEnd = toCursor.ch === editor.getLine(toCursor.line).length || editor.getLine(toCursor.line).charAt(toCursor.ch) === ' ';
+	const lineStart =
+		fromCursor.ch === 0 ||
+		editor.getLine(fromCursor.line).charAt(fromCursor.ch - 1) === " ";
+	const lineEnd =
+		toCursor.ch === editor.getLine(toCursor.line).length ||
+		editor.getLine(toCursor.line).charAt(toCursor.ch) === " ";
 
-	return {lineStart, lineEnd, toCursor};
+	return { lineStart, lineEnd, toCursor };
 };
 
 const insertEndMarkBeforeBlockID = (content: string, end: string) => {
@@ -30,22 +33,40 @@ const insertEndMarkBeforeBlockID = (content: string, end: string) => {
 	}
 };
 
-export const dealWithSelection = (insert: FoldAnyWhereSettings, editor: Editor) => {
+export const dealWithSelection = (
+	insert: FoldAnyWhereSettings,
+	editor: Editor
+) => {
 	const selection = editor.getSelection();
 	if (selection.trim().length === 0) return;
 
-	const {lineStart, lineEnd, toCursor} = checkStartOrEnd(editor);
+	const { lineStart, lineEnd, toCursor } = checkStartOrEnd(editor);
 
-	editor.replaceSelection((lineStart ? `` : ` `) + `${insert.startMarker} ${insertEndMarkBeforeBlockID(selection.trim(), insert.endMarker)}` + (lineEnd ? `` : ` `));
+	editor.replaceSelection(
+		(lineStart ? `` : ` `) +
+			`${insert.startMarker} ${insertEndMarkBeforeBlockID(
+				selection.trim(),
+				insert.endMarker
+			)}` +
+			(lineEnd ? `` : ` `)
+	);
 	editor.setCursor(toCursor.line, toCursor.ch + 14);
 
 	foldAll((editor as any).cm);
 };
 
-export const insertMark = (insert: FoldAnyWhereSettings, editor: Editor, type: InsertMarkType) => {
+export const insertMark = (
+	insert: FoldAnyWhereSettings,
+	editor: Editor,
+	type: InsertMarkType
+) => {
 	const selection = editor.getSelection();
 	if (selection.trim().length > 0) return;
 
-	const {lineStart, lineEnd} = checkStartOrEnd(editor);
-	editor.replaceSelection((lineStart ? `` : ` `) + (type === 'start' ? insert.startMarker : insert.endMarker) + (lineEnd ? (type === "start" ? ` ` : ``) : ` `));
+	const { lineStart, lineEnd } = checkStartOrEnd(editor);
+	editor.replaceSelection(
+		(lineStart ? `` : ` `) +
+			(type === "start" ? insert.startMarker : insert.endMarker) +
+			(lineEnd ? (type === "start" ? ` ` : ``) : ` `)
+	);
 };
