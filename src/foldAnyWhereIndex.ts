@@ -12,14 +12,15 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import FoldingExtension, {
 	foldAll,
 	unfoldAll,
-	FoldAnywhereConfigFacet,
-	FoldAnywhereCompartment,
+	foldAllRegions,
 	reconfigureFoldAnywhere,
+	loadFoldAnyWhereSettings,
 } from "./widgets/foldService";
 import { foldAllPlugin } from "./widgets/foldMarkerWidget";
 import { dealWithSelection, insertMark } from "./utils/line";
@@ -27,15 +28,16 @@ import { dealWithSelection, insertMark } from "./utils/line";
 export interface FoldAnyWhereSettings {
 	startMarker: string;
 	endMarker: string;
+	autoFoldOnLoad: boolean;
 }
 
 const DEFAULT_SETTINGS: FoldAnyWhereSettings = {
 	startMarker: "%% REGION %%",
 	endMarker: "%% ENDREGION %%",
+	autoFoldOnLoad: true,
 };
 
 export default class FoldAnyWherePlugin extends Plugin {
-	private settingTab: FoldAnywhereSettingTab;
 	settings: FoldAnyWhereSettings;
 
 	async onload() {
@@ -45,6 +47,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 		this.registerCommands();
 		this.registerContextMenu();
 		this.registerEditorExtension([
+			loadFoldAnyWhereSettings(this.settings),
 			FoldingExtension,
 			foldAllPlugin(this.app, this),
 		]);
@@ -54,7 +57,27 @@ export default class FoldAnyWherePlugin extends Plugin {
 				view.dispatch({
 					effects: reconfigureFoldAnywhere(this.settings),
 				});
+
+				// Auto-fold all regions on load if enabled
+				if (this.settings.autoFoldOnLoad) {
+					foldAllRegions(view);
+				}
 			});
+
+			// Also register an event to auto-fold regions when opening new files
+			this.registerEvent(
+				this.app.workspace.on("file-open", () => {
+					// Only auto-fold if the setting is enabled
+					if (this.settings.autoFoldOnLoad) {
+						// Small delay to ensure editor is fully loaded
+						setTimeout(() => {
+							this.iterateCM6((view) => {
+								foldAllRegions(view);
+							});
+						}, 200);
+					}
+				})
+			);
 		});
 	}
 
@@ -83,6 +106,15 @@ export default class FoldAnyWherePlugin extends Plugin {
 			editorCallback: (editor: Editor) => {
 				const editorView = (editor as any).cm;
 				unfoldAll(editorView);
+			},
+		});
+
+		this.addCommand({
+			id: "fold-all-regions",
+			name: "Fold all regions in file",
+			editorCallback: (editor: Editor) => {
+				const editorView = (editor as any).cm;
+				foldAllRegions(editorView);
 			},
 		});
 
@@ -332,6 +364,18 @@ export class FoldAnywhereSettingTab extends PluginSettingTab {
 					settings.endMarker = value;
 					this.applySettingsUpdate();
 				})
+			);
+
+		new Setting(containerEl)
+			.setName("Auto-fold regions on load")
+			.setDesc("Automatically fold all regions when opening files")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(settings.autoFoldOnLoad)
+					.onChange(async (value) => {
+						settings.autoFoldOnLoad = value;
+						this.applySettingsUpdate();
+					})
 			);
 	}
 }

@@ -11,6 +11,9 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      monkey-around:
+        specifier: ^3.0.0
+        version: 3.0.0
     devDependencies:
       '@codemirror/basic-setup':
         specifier: ^0.20.0
@@ -916,6 +919,9 @@ packages:
 
   moment@2.29.4:
     resolution: {integrity: sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==}
+
+  monkey-around@3.0.0:
+    resolution: {integrity: sha512-jL6uY2lEAoaHxZep1cNRkCZjoIWY4g5VYCjriEWmcyHU7w8NU1+JH57xE251UVTohK0lCxMjv0ZV4ByDLIXEpw==}
 
   ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -2190,6 +2196,8 @@ snapshots:
       yargs-unparser: 2.0.0
 
   moment@2.29.4: {}
+
+  monkey-around@3.0.0: {}
 
   ms@2.0.0: {}
 

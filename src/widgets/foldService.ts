@@ -26,6 +26,7 @@ export const FoldAnywhereConfigFacet = Facet.define<
 		const defaultSettings: FoldAnyWhereSettings = {
 			startMarker: "%% REGION %%",
 			endMarker: "%% ENDREGION %%",
+			autoFoldOnLoad: true,
 		};
 
 		return combineConfig(settings, defaultSettings, {
@@ -337,13 +338,17 @@ const FoldingExtension: Extension = [
 	foldRanges,
 	foldService.of(foldServiceFunc),
 	// Add the Compartment with default settings
-	FoldAnywhereCompartment.of(
-		FoldAnywhereConfigFacet.of({
-			startMarker: "%% REGION %%",
-			endMarker: "%% ENDREGION %%",
-		})
-	),
 ];
+
+export const loadFoldAnyWhereSettings = (settings: FoldAnyWhereSettings) => {
+	return FoldAnywhereCompartment.of(
+		FoldAnywhereConfigFacet.of({
+			startMarker: settings.startMarker,
+			endMarker: settings.endMarker,
+			autoFoldOnLoad: settings.autoFoldOnLoad,
+		})
+	);
+};
 
 export function foldAll(view: EditorView) {
 	const ranges = createFoldRangesFromCurrentPOS(
@@ -359,6 +364,14 @@ export function foldAll(view: EditorView) {
 				head: ranges.last()?.to || 0,
 			},
 		});
+	}
+}
+
+export function foldAllRegions(view: EditorView) {
+	const ranges = getAllFoldableRanges(view.state);
+	if (ranges.length > 0) {
+		const effects = ranges.map((range) => foldEffect.of(range));
+		view.dispatch({ effects });
 	}
 }
 
