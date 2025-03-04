@@ -69,7 +69,6 @@ interface EditableView {
 }
 
 export default class FoldAnyWherePlugin extends Plugin {
-	private settingTab: FoldAnywhereSettingTab;
 	settings: FoldAnyWhereSettings;
 	private editorPatcher: (() => void) | null = null;
 
@@ -248,7 +247,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 											(fold) =>
 												"awFoldFrom" in fold &&
 												"awFoldTo" in fold
-										);
+										) as unknown as AwFoldRange[];
 
 										if (
 											codemirror &&
@@ -296,7 +295,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 				// Clean up the temporary view
 				tempView.unload();
 				tempViewEl.remove();
-				// this.register(this.editorPatcher);
+				this.register(this.editorPatcher);
 			}
 		} catch (error) {
 			console.error("Failed to patch Obsidian folding methods:", error);
