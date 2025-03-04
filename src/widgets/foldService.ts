@@ -3,6 +3,7 @@ import {
 	foldEffect,
 	foldService,
 	unfoldEffect,
+	foldState,
 } from "@codemirror/language";
 import {
 	combineConfig,
@@ -33,6 +34,52 @@ export const FoldAnywhereConfigFacet = Facet.define<
 			startMarker: (a, b) => b || a,
 			endMarker: (a, b) => b || a,
 		});
+	},
+});
+
+export const foldRangesStateField = StateField.define<
+	{ from: number; to: number }[]
+>({
+	create: () => [],
+	update(value, tr) {
+		// If document changed, recalculate all fold ranges
+		if (
+			!tr.effects.some((effect) => effect.is(foldEffect)) &&
+			!tr.effects.some((effect) => effect.is(unfoldEffect))
+		) {
+			return value;
+		}
+
+		// Check for fold/unfold effects and update accordingly
+		for (const effect of tr.effects) {
+			if (effect.is(foldEffect)) {
+				// Add new fold range if it doesn't already exist
+				const range = effect.value;
+
+				// Check if this range exists in the foldable ranges
+				const allFoldableRanges = getAllFoldableRanges(tr.state);
+				const isValidRange = allFoldableRanges.some(
+					(r) => r.from === range.from && r.to === range.to
+				);
+
+				if (
+					isValidRange &&
+					!value.some(
+						(r) => r.from === range.from && r.to === range.to
+					)
+				) {
+					value = [...value, range];
+				}
+			} else if (effect.is(unfoldEffect)) {
+				// Remove fold range if it exists
+				const range = effect.value;
+				value = value.filter(
+					(r) => !(r.from === range.from && r.to === range.to)
+				);
+			}
+		}
+
+		return value;
 	},
 });
 
@@ -222,7 +269,7 @@ function findMatchingFoldRange(
 	return null; // If no matching range is found, return null
 }
 
-function getAllFoldableRanges(
+export function getAllFoldableRanges(
 	state: EditorState
 ): { from: number; to: number }[] {
 	// Get settings from the state using the Facet
@@ -317,12 +364,12 @@ function foldServiceFunc(
 	return range;
 }
 
-const foldRanges = StateField.define<{ from: number; to: number }[]>({
-	create: (state) => getAllFoldableRanges(state),
-	update(value, tr) {
-		return value;
-	},
-});
+// export const foldRanges = StateField.define<{ from: number; to: number }[]>({
+// 	create: () => [],
+// 	update(value, tr) {
+// 		return value;
+// 	},
+// });
 
 const FoldingExtension: Extension = [
 	codeFolding({
@@ -331,12 +378,28 @@ const FoldingExtension: Extension = [
 				text: "...",
 				cls: "cm-foldPlaceholder",
 			});
-			placeholder.onclick = onclick;
+			placeholder.onclick = (event) => {
+				const pos = view.posAtDOM(event.target as Node);
+				if (pos) {
+					const effects = unfoldEffect.of({
+						from: pos - 2,
+						to: pos + 2,
+					});
+					view.dispatch({
+						effects,
+						selection: {
+							anchor: pos + 2,
+							head: pos + 2,
+						},
+					});
+				}
+			};
 			return placeholder;
 		},
 	}),
-	foldRanges,
+	// foldRanges,
 	foldService.of(foldServiceFunc),
+	foldRangesStateField,
 	// Add the Compartment with default settings
 ];
 
@@ -358,6 +421,7 @@ export function foldAll(view: EditorView) {
 	if (ranges.length > 0) {
 		const effects = ranges.map((range) => foldEffect.of(range));
 		view.dispatch({ effects });
+
 		view.dispatch({
 			selection: {
 				anchor: ranges.last()?.to || 0,

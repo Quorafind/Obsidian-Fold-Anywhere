@@ -19,11 +19,16 @@ import FoldingExtension, {
 	foldAll,
 	unfoldAll,
 	foldAllRegions,
+	FoldAnywhereConfigFacet,
+	FoldAnywhereCompartment,
 	reconfigureFoldAnywhere,
 	loadFoldAnyWhereSettings,
+	foldRangesStateField,
 } from "./widgets/foldService";
 import { foldAllPlugin } from "./widgets/foldMarkerWidget";
 import { dealWithSelection, insertMark } from "./utils/line";
+import { around } from "monkey-around";
+import { codeFolding, foldEffect, foldState } from "@codemirror/language";
 
 export interface FoldAnyWhereSettings {
 	startMarker: string;
@@ -37,8 +42,38 @@ const DEFAULT_SETTINGS: FoldAnyWhereSettings = {
 	autoFoldOnLoad: true,
 };
 
+// Define interfaces for the fold info structure
+interface FoldRange {
+	from: number; // line number
+	to: number; // line number
+}
+
+interface AwFoldRange {
+	awFoldFrom: number;
+	awFoldTo: number;
+}
+
+interface FoldInfo {
+	folds: FoldRange[];
+	lines: number;
+}
+
+interface FoldInfoWithAwFolds extends FoldInfo {
+	awFolds: (AwFoldRange | FoldRange)[];
+}
+
+// Type for editor view with showEditor method
+interface EditableView {
+	editable: boolean;
+	showEditor: () => void;
+	unload: () => void;
+	editMode: any;
+}
+
 export default class FoldAnyWherePlugin extends Plugin {
+	private settingTab: FoldAnywhereSettingTab;
 	settings: FoldAnyWhereSettings;
+	private editorPatcher: (() => void) | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -47,10 +82,13 @@ export default class FoldAnyWherePlugin extends Plugin {
 		this.registerCommands();
 		this.registerContextMenu();
 		this.registerEditorExtension([
-			loadFoldAnyWhereSettings(this.settings),
 			FoldingExtension,
 			foldAllPlugin(this.app, this),
+			loadFoldAnyWhereSettings(this.settings),
 		]);
+
+		// Patch Obsidian's native folding methods
+		this.patchObsidianFoldMethods();
 
 		this.app.workspace.onLayoutReady(() => {
 			this.iterateCM6((view) => {
@@ -81,7 +119,191 @@ export default class FoldAnyWherePlugin extends Plugin {
 		});
 	}
 
-	onunload() {}
+	onunload() {
+		// Uninstall any patches
+		if (this.editorPatcher) {
+			this.editorPatcher = null;
+		}
+	}
+
+	/**
+	 * Patches Obsidian's native folding methods to handle inline folding
+	 */
+	patchObsidianFoldMethods() {
+		try {
+			// Create a temporary MarkdownView to access the editor prototype
+			const tempViewEl = document.createElement("div");
+			// Using private Obsidian API - must use `any` type to access private properties
+			const app = this.app as any;
+			if (!app.embedRegistry) {
+				console.warn(
+					"Cannot patch folding methods: embedRegistry not found"
+				);
+				return;
+			}
+			const tempView = app.embedRegistry.embedByExtension.md(
+				{ app: this.app, containerEl: tempViewEl },
+				null as unknown as TFile,
+				""
+			) as unknown as EditableView;
+			// Ensure the view is editable
+			if (tempView) {
+				tempView.editable = true;
+				tempView.showEditor();
+				// Get the editor prototype
+				const editorPrototype = Object.getPrototypeOf(
+					Object.getPrototypeOf(tempView.editMode)
+				);
+				// Now patch the getFoldInfo and applyFoldInfo methods
+				this.editorPatcher = around(
+					editorPrototype.constructor.prototype,
+					{
+						getFoldInfo: (next) => {
+							return function () {
+								try {
+									// Call the original method
+									const foldInfo = next.apply(this);
+
+									// Get awFolds - all currently folded regions
+									const awFolds: AwFoldRange[] = [];
+									if (this.cm) {
+										try {
+											// 使用 foldState 获取当前所有折叠区域
+											const currentFoldRanges =
+												this.cm.state.field(
+													foldRangesStateField
+												);
+
+											for (const fold of currentFoldRanges) {
+												awFolds.push({
+													awFoldFrom: fold.from,
+													awFoldTo: fold.to,
+												});
+											}
+										} catch (rangeError) {
+											console.warn(
+												"Error getting fold ranges:",
+												rangeError
+											);
+										}
+									}
+
+									// If we have any custom folds, add them to the result
+									if (foldInfo && awFolds.length > 0) {
+										// Filter out any folds that match our awFolds to avoid duplicates
+										const newFolds = foldInfo.folds.filter(
+											(fold: FoldRange) => {
+												return !awFolds.some(
+													(awFold) => {
+														return (
+															this.cm.state.doc.lineAt(
+																awFold.awFoldFrom
+															).number -
+																1 ===
+																fold.from &&
+															this.cm.state.doc.lineAt(
+																awFold.awFoldTo
+															).number -
+																1 ===
+																fold.to
+														);
+													}
+												);
+											}
+										);
+										// Add our awFolds to the final result
+										foldInfo.folds = [
+											...newFolds,
+											...awFolds,
+										];
+									}
+
+									return foldInfo;
+								} catch (error) {
+									console.warn(
+										"Error in getFoldInfo, providing fallback:",
+										error
+									);
+									// Return null as a fallback when an error occurs
+									return null;
+								}
+							};
+						},
+						applyFoldInfo: (next) => {
+							return function (e: FoldInfoWithAwFolds | null) {
+								// Only proceed if we have valid fold info
+								if (!e) return;
+								try {
+									// Call the original method with our sanitized data
+									const result = next.apply(this, [
+										e.folds.filter((fold) => {
+											return !("awFoldFrom" in fold);
+										}),
+									]);
+
+									const codemirror: EditorView = this.cm;
+
+									// After applying folds, also collect all active awFolds
+									try {
+										// Get current awFolds after applying standard folds
+										const awFolds = e.folds.filter(
+											(fold) =>
+												"awFoldFrom" in fold &&
+												"awFoldTo" in fold
+										);
+
+										if (
+											codemirror &&
+											awFolds &&
+											awFolds.length > 0
+										) {
+											try {
+												for (const fold of awFolds) {
+													this.cm.dispatch({
+														effects: [
+															foldEffect.of({
+																from: fold.awFoldFrom as number,
+																to: fold.awFoldTo as number,
+															}),
+														],
+													});
+												}
+											} catch (rangeError) {
+												console.warn(
+													"Error getting plugin fold ranges:",
+													rangeError
+												);
+											}
+										}
+									} catch (awError) {
+										console.warn(
+											"Error handling awFolds:",
+											awError
+										);
+									}
+
+									return result;
+								} catch (error) {
+									console.warn(
+										"Error in applyFoldInfo:",
+										error
+									);
+									// Don't proceed when an error occurs
+									return;
+								}
+							};
+						},
+					}
+				);
+				// Clean up the temporary view
+				tempView.unload();
+				tempViewEl.remove();
+				// this.register(this.editorPatcher);
+			}
+		} catch (error) {
+			console.error("Failed to patch Obsidian folding methods:", error);
+		}
+	}
 
 	registerIcons() {
 		addIcon(
