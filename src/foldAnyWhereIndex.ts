@@ -19,8 +19,6 @@ import FoldingExtension, {
 	foldAll,
 	unfoldAll,
 	foldAllRegions,
-	FoldAnywhereConfigFacet,
-	FoldAnywhereCompartment,
 	reconfigureFoldAnywhere,
 	loadFoldAnyWhereSettings,
 	foldRangesStateField,
@@ -28,7 +26,7 @@ import FoldingExtension, {
 import { foldAllPlugin } from "./widgets/foldMarkerWidget";
 import { dealWithSelection, insertMark } from "./utils/line";
 import { around } from "monkey-around";
-import { codeFolding, foldEffect, foldState } from "@codemirror/language";
+import { foldEffect } from "@codemirror/language";
 
 export interface FoldAnyWhereSettings {
 	startMarker: string;

@@ -1,43 +1,45 @@
 .cm-fold-anywhere-icon {
-    cursor: pointer;
-    opacity: 0;
-    color: var(--color-red);
-    transition: opacity .1s ease-in;
+	cursor: pointer;
+	opacity: 0;
+	color: var(--color-red);
+	transition: opacity 0.1s ease-in;
 }
 
 .cm-contentContainer:hover .cm-fold-anywhere-icon {
 	opacity: 0.2;
 }
 
-.cm-line:hover .cm-fold-anywhere-icon, .cm-line.cm-active .cm-fold-anywhere-icon {
+.cm-line:hover .cm-fold-anywhere-icon,
+.cm-line.cm-active .cm-fold-anywhere-icon {
 	opacity: 0.5;
 }
 
 .cm-line:hover .cm-fold-anywhere-icon:hover {
-    opacity: 1;
+	opacity: 1;
 }
 
-.cm-fold-anywhere-icon span.fold-start, .cm-fold-anywhere-icon span.fold-end {
-    vertical-align: middle;
-    height: 22px;
-    display: inline-flex;
+.cm-fold-anywhere-icon span.fold-start,
+.cm-fold-anywhere-icon span.fold-end {
+	vertical-align: middle;
+	height: 22px;
+	display: inline-flex;
 }
 
 .button-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 2rem;
+	display: flex;
+	justify-content: space-between;
+	margin-top: 2rem;
 }
 
 .fold-anywhere-ask-modal div {
-    font-size: 20px;
-    text-align: center;
+	font-size: 20px;
+	text-align: center;
 }
 
 .fold-anywhere-ask-modal button {
-    width: 4rem;
-    margin-left: 3rem;
-    margin-right: 3rem;
+	width: 4rem;
+	margin-left: 3rem;
+	margin-right: 3rem;
 }
 
 .rendered-markdown .cm-time-mark-icon {
