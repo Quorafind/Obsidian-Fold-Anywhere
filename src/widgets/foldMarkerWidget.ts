@@ -111,7 +111,6 @@ export function foldAllPlugin(app: App, plugin: FoldAnyWherePlugin) {
 			getDeco(match: RegExpExecArray, _view: EditorView, pos: number) {
 				const from = pos;
 				const to = pos + match[0].length;
-				console.log(from, to, match.groups?.START ? "fold" : "unfold");
 
 				return Decoration.replace({
 					widget: new FoldMarkWidget(

@@ -14,8 +14,7 @@ import {
 	StateField,
 } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { editorInfoField } from "obsidian";
-import FoldAnyWherePlugin, { FoldAnyWhereSettings } from "../foldAnyWhereIndex";
+import { FoldAnyWhereSettings } from "../foldAnyWhereIndex";
 import { cloneDeep } from "lodash";
 
 // Define the Facet for plugin settings
