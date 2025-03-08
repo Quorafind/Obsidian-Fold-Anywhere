@@ -161,26 +161,73 @@ export default class FoldAnyWherePlugin extends Plugin {
 									// Call the original method
 									const foldInfo = next.apply(this);
 
-									// Get awFolds - all currently folded regions
+									// Get awFolds from localStorage
 									const awFolds: AwFoldRange[] = [];
 									if (this.cm) {
 										try {
-											// 使用 foldState 获取当前所有折叠区域
+											// Get current file path to use as key
+											const currentFile =
+												this.owner?.file?.path;
 											const currentFoldRanges =
 												this.cm.state.field(
 													foldRangesStateField
 												);
-
 											for (const fold of currentFoldRanges) {
 												awFolds.push({
 													awFoldFrom: fold.from,
 													awFoldTo: fold.to,
 												});
 											}
-										} catch (rangeError) {
+											if (currentFile) {
+												// First read existing fold data
+												let allFolds = {};
+												const storedFolds =
+													app.loadLocalStorage(
+														`aw-folds`
+													);
+												console.log(storedFolds);
+												if (storedFolds) {
+													try {
+														allFolds = JSON.parse(
+															storedFolds
+														) as Record<
+															string,
+															AwFoldRange[]
+														>;
+													} catch (e) {
+														console.warn(
+															"Error parsing stored folds:",
+															e
+														);
+													}
+												}
+												// Create fold data for current file
+												const fileFolds = awFolds.map(
+													(fold) => ({
+														awFoldFrom:
+															fold.awFoldFrom,
+														awFoldTo: fold.awFoldTo,
+													})
+												);
+
+												// Update the map with current file's folds
+												(
+													allFolds as Record<
+														string,
+														AwFoldRange[]
+													>
+												)[currentFile] = fileFolds;
+
+												// Save all folds back to localStorage
+												app.saveLocalStorage(
+													`aw-folds`,
+													JSON.stringify(allFolds)
+												);
+											}
+										} catch (storageError) {
 											console.warn(
-												"Error getting fold ranges:",
-												rangeError
+												"Error loading fold data from localStorage:",
+												storageError
 											);
 										}
 									}
@@ -209,10 +256,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 											}
 										);
 										// Add our awFolds to the final result
-										foldInfo.folds = [
-											...newFolds,
-											...awFolds,
-										];
+										foldInfo.folds = [...newFolds];
 									}
 
 									return foldInfo;
@@ -242,32 +286,65 @@ export default class FoldAnyWherePlugin extends Plugin {
 
 									// After applying folds, also collect all active awFolds
 									try {
-										// Get current awFolds after applying standard folds
-										const awFolds = e.folds.filter(
-											(fold) =>
-												"awFoldFrom" in fold &&
-												"awFoldTo" in fold
-										) as unknown as AwFoldRange[];
-
-										if (
-											codemirror &&
-											awFolds &&
-											awFolds.length > 0
-										) {
+										if (codemirror) {
 											try {
-												for (const fold of awFolds) {
-													this.cm.dispatch({
-														effects: [
-															foldEffect.of({
-																from: fold.awFoldFrom as number,
-																to: fold.awFoldTo as number,
-															}),
-														],
-													});
+												// Save the fold data to localStorage
+												const currentFile =
+													this.owner?.file?.path;
+												if (currentFile) {
+													// First read existing fold data
+
+													const storedFolds =
+														app.loadLocalStorage(
+															`aw-folds`
+														);
+
+													console.log(storedFolds);
+													if (storedFolds) {
+														try {
+															const parsedFolds =
+																JSON.parse(
+																	storedFolds
+																);
+
+															// Check if the file exists in the stored folds
+															if (
+																parsedFolds[
+																	currentFile
+																]
+															) {
+																// Get the folds for the current file
+																const fileFolds =
+																	parsedFolds[
+																		currentFile
+																	];
+																for (const fold of fileFolds) {
+																	this.cm.dispatch(
+																		{
+																			effects:
+																				[
+																					foldEffect.of(
+																						{
+																							from: fold.awFoldFrom as number,
+																							to: fold.awFoldTo as number,
+																						}
+																					),
+																				],
+																		}
+																	);
+																}
+															}
+														} catch (parseError) {
+															console.warn(
+																"Error parsing fold data:",
+																parseError
+															);
+														}
+													}
 												}
 											} catch (rangeError) {
 												console.warn(
-													"Error getting plugin fold ranges:",
+													"Error applying plugin fold ranges:",
 													rangeError
 												);
 											}
