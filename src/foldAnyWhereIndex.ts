@@ -529,9 +529,10 @@ export default class FoldAnyWherePlugin extends Plugin {
 								const position = { x: 0, y: 0 };
 
 								// Get mouse position if possible
-								const mouseEvent = app.workspace.containerEl
-									.querySelector(".menu")
-									?.getBoundingClientRect();
+								const mouseEvent =
+									this.app.workspace.containerEl
+										.querySelector(".menu")
+										?.getBoundingClientRect();
 								if (mouseEvent) {
 									position.x = mouseEvent.left;
 									position.y = mouseEvent.bottom;
