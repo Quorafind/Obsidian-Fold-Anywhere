@@ -1,7 +1,7 @@
 {
 	"id": "fold-anywhere",
 	"name": "Fold Anywhere",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Set start and end marker, and then fold any text anywhere.",
 	"author": "Boninall",
