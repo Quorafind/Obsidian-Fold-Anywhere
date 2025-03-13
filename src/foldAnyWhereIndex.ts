@@ -34,13 +34,15 @@ export interface FoldAnyWhereSettings {
 	startMarker: string;
 	endMarker: string;
 	lineFoldMarker: string;
+	lineFoldEndMarker: string;
 	autoFoldOnLoad: boolean;
 }
 
 const DEFAULT_SETTINGS: FoldAnyWhereSettings = {
 	startMarker: "%% REGION %%",
 	endMarker: "%% ENDREGION %%",
-	lineFoldMarker: "%% LINEFOLD %%",
+	lineFoldMarker: "%% LINEFOLDSTART %%",
+	lineFoldEndMarker: "%% LINEFOLDEND %%",
 	autoFoldOnLoad: true,
 };
 
@@ -720,12 +722,27 @@ export class FoldAnywhereSettingTab extends PluginSettingTab {
 				})
 			);
 
-		new Setting(containerEl).setName("Line fold marker").addText((text) =>
-			text.setValue(settings.lineFoldMarker).onChange(async (value) => {
-				settings.lineFoldMarker = value;
-				this.applySettingsUpdate();
-			})
-		);
+		new Setting(containerEl)
+			.setName("Line fold start marker")
+			.addText((text) =>
+				text
+					.setValue(settings.lineFoldMarker)
+					.onChange(async (value) => {
+						settings.lineFoldMarker = value;
+						this.applySettingsUpdate();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Line fold end marker")
+			.addText((text) =>
+				text
+					.setValue(settings.lineFoldEndMarker)
+					.onChange(async (value) => {
+						settings.lineFoldEndMarker = value;
+						this.applySettingsUpdate();
+					})
+			);
 
 		new Setting(containerEl)
 			.setName("Auto-fold regions on load")
