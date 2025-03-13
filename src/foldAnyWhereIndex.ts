@@ -4,6 +4,7 @@ import {
 	ButtonComponent,
 	debounce,
 	Editor,
+	editorInfoField,
 	MarkdownView,
 	Menu,
 	MenuItem,
@@ -19,6 +20,7 @@ import FoldingExtension, {
 	foldAll,
 	unfoldAll,
 	foldAllRegions,
+	foldAllLineRegions,
 	reconfigureFoldAnywhere,
 	loadFoldAnyWhereSettings,
 	foldRangesStateField,
@@ -31,12 +33,14 @@ import { foldEffect } from "@codemirror/language";
 export interface FoldAnyWhereSettings {
 	startMarker: string;
 	endMarker: string;
+	lineFoldMarker: string;
 	autoFoldOnLoad: boolean;
 }
 
 const DEFAULT_SETTINGS: FoldAnyWhereSettings = {
 	startMarker: "%% REGION %%",
 	endMarker: "%% ENDREGION %%",
+	lineFoldMarker: "%% LINEFOLD %%",
 	autoFoldOnLoad: true,
 };
 
@@ -95,7 +99,31 @@ export default class FoldAnyWherePlugin extends Plugin {
 
 				// Auto-fold all regions on load if enabled
 				if (this.settings.autoFoldOnLoad) {
-					foldAllRegions(view);
+					const currentSavedFolds =
+						this.app.loadLocalStorage(`aw-folds`);
+
+					if (currentSavedFolds) {
+						const parsedFolds = JSON.parse(currentSavedFolds);
+
+						const file = view.state.field(editorInfoField).file;
+
+						console.log(parsedFolds, file);
+						if (!file) return;
+						const foldsOfFile = parsedFolds[file.path];
+						if (foldsOfFile) {
+							for (const fold of foldsOfFile) {
+								const realFold = {
+									from: fold.awFoldFrom,
+									to: fold.awFoldTo,
+								};
+								view.dispatch({
+									effects: foldEffect.of(realFold),
+								});
+							}
+						}
+					} else {
+						foldAllRegions(view);
+					}
 				}
 			});
 
@@ -185,7 +213,6 @@ export default class FoldAnyWherePlugin extends Plugin {
 													app.loadLocalStorage(
 														`aw-folds`
 													);
-												console.log(storedFolds);
 												if (storedFolds) {
 													try {
 														allFolds = JSON.parse(
@@ -299,7 +326,6 @@ export default class FoldAnyWherePlugin extends Plugin {
 															`aw-folds`
 														);
 
-													console.log(storedFolds);
 													if (storedFolds) {
 														try {
 															const parsedFolds =
@@ -425,14 +451,21 @@ export default class FoldAnyWherePlugin extends Plugin {
 			id: "mark-as-start",
 			name: "Mark as start",
 			editorCallback: (editor: Editor) =>
-				insertMark(this.settings, editor, "start"),
+				insertMark(editor, this.settings.startMarker),
+		});
+
+		this.addCommand({
+			id: "mark-as-line-fold",
+			name: "Mark as line fold",
+			editorCallback: (editor: Editor) =>
+				insertMark(editor, this.settings.lineFoldMarker),
 		});
 
 		this.addCommand({
 			id: "mark-as-end",
 			name: "Mark as end",
 			editorCallback: (editor: Editor) =>
-				insertMark(this.settings, editor, "end"),
+				insertMark(editor, this.settings.endMarker),
 		});
 
 		this.addCommand({
@@ -471,6 +504,15 @@ export default class FoldAnyWherePlugin extends Plugin {
 				new Notice("No active file open");
 			},
 		});
+
+		this.addCommand({
+			id: "fold-anywhere-fold-all-line-regions",
+			name: "Fold all line regions",
+			editorCallback: (editor: Editor) => {
+				const view = (editor as any).cm as EditorView;
+				foldAllLineRegions(view);
+			},
+		});
 	}
 
 	registerContextMenu() {
@@ -507,7 +549,22 @@ export default class FoldAnyWherePlugin extends Plugin {
 								.setTitle("Mark as start")
 								.setIcon("fold-horizontal")
 								.onClick(async () => {
-									insertMark(this.settings, editor, "start");
+									insertMark(
+										editor,
+										this.settings.startMarker
+									);
+								})
+						);
+
+						subMenu.addItem((subItem: MenuItem) =>
+							subItem
+								.setTitle("Mark as line fold")
+								.setIcon("fold-horizontal")
+								.onClick(async () => {
+									insertMark(
+										editor,
+										this.settings.lineFoldMarker
+									);
 								})
 						);
 
@@ -516,7 +573,7 @@ export default class FoldAnyWherePlugin extends Plugin {
 								.setTitle("Mark as end")
 								.setIcon("fold-horizontal")
 								.onClick(async () => {
-									insertMark(this.settings, editor, "end");
+									insertMark(editor, this.settings.endMarker);
 								})
 						);
 
@@ -662,6 +719,13 @@ export class FoldAnywhereSettingTab extends PluginSettingTab {
 					this.applySettingsUpdate();
 				})
 			);
+
+		new Setting(containerEl).setName("Line fold marker").addText((text) =>
+			text.setValue(settings.lineFoldMarker).onChange(async (value) => {
+				settings.lineFoldMarker = value;
+				this.applySettingsUpdate();
+			})
+		);
 
 		new Setting(containerEl)
 			.setName("Auto-fold regions on load")

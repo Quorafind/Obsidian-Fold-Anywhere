@@ -27,12 +27,14 @@ export const FoldAnywhereConfigFacet = Facet.define<
 		const defaultSettings: FoldAnyWhereSettings = {
 			startMarker: "%% REGION %%",
 			endMarker: "%% ENDREGION %%",
+			lineFoldMarker: "%% LINEFOLD %%",
 			autoFoldOnLoad: true,
 		};
 
 		return combineConfig(settings, defaultSettings, {
 			startMarker: (a, b) => b || a,
 			endMarker: (a, b) => b || a,
+			lineFoldMarker: (a, b) => b || a,
 		});
 	},
 });
@@ -105,12 +107,38 @@ function createFoldRangesFromCurrentPOS(
 
 	const startRegex = new RegExp(settings.startMarker, "g");
 	const endRegex = new RegExp(settings.endMarker, "g");
+	const lineFoldRegex = new RegExp(settings.lineFoldMarker + "\\s*$", "g");
 
 	let ranges: { from: number; to: number }[] = [];
-	let startStack: { pos: number; depth: number }[] = [];
+	let startStack: { pos: number; depth: number; isLineFold: boolean }[] = [];
 	let depth = 0;
 
-	// Find all fold regions in the document
+	// Check if cursor is on a line with line fold marker
+	const currentLine = state.doc.lineAt(currentPos);
+	lineFoldRegex.lastIndex = 0;
+	const lineFoldMatch = lineFoldRegex.exec(currentLine.text);
+
+	if (lineFoldMatch) {
+		// Calculate the position of the marker
+		const markerPos = currentLine.from + lineFoldMatch.index;
+
+		// Find the next line with a line fold marker
+		for (let i = currentLine.number + 1; i <= state.doc.lines; i++) {
+			const nextLine = state.doc.line(i);
+			lineFoldRegex.lastIndex = 0;
+			let nextMatch = lineFoldRegex.exec(nextLine.text);
+			if (nextMatch) {
+				// Found matching line fold marker
+				ranges.push({
+					from: markerPos, // From the position of the first marker
+					to: nextLine.to, // To the end of the line with the second marker
+				});
+				return ranges;
+			}
+		}
+	}
+
+	// Find all regular fold regions in the document
 	for (let i = 1; i <= state.doc.lines; i++) {
 		const line = state.doc.line(i);
 
@@ -154,7 +182,11 @@ function createFoldRangesFromCurrentPOS(
 		for (const marker of markers) {
 			if (marker.type === "start") {
 				// Push start position onto stack with current depth
-				startStack.push({ pos: marker.pos, depth: depth });
+				startStack.push({
+					pos: marker.pos,
+					depth: depth,
+					isLineFold: false,
+				});
 				depth++;
 			} else if (marker.type === "end" && startStack.length > 0) {
 				// Decrement depth
@@ -170,6 +202,8 @@ function createFoldRangesFromCurrentPOS(
 
 					// Add range only if cursor is within this range
 					const endPos = marker.pos + marker.length;
+
+					// Regular fold - check if cursor is within range
 					if (startInfo.pos < currentPos && endPos > currentPos) {
 						ranges.push({ from: startInfo.pos, to: endPos });
 					}
@@ -197,9 +231,11 @@ function findMatchingFoldRange(
 
 	const startRegex = new RegExp(settings.startMarker, "g");
 	const endRegex = new RegExp(settings.endMarker, "g");
+	const lineFoldRegex = new RegExp(settings.lineFoldMarker + "\\s*$", "g");
 
-	let startStack: number[] = [];
+	let startStack: { pos: number; isLineFold: boolean }[] = [];
 	let cursorStartPos: number | null = null;
+	let isLineFold = false;
 	let currentLine = state.doc.lineAt(currentPos);
 
 	// Check if cursor is on a start marker
@@ -214,17 +250,42 @@ function findMatchingFoldRange(
 		) {
 			cursorStartPos = startPos;
 			cursorOnStartMark = true;
+			isLineFold = false;
 			break;
 		}
 	}
 
-	// If cursor is not on a start marker, return null
+	// Check if cursor is on a line with a lineFold marker at the end
+	if (!cursorOnStartMark) {
+		lineFoldRegex.lastIndex = 0;
+		let lineFoldMatch = lineFoldRegex.exec(currentLine.text);
+		if (lineFoldMatch) {
+			// Calculate the position of the marker
+			const markerPos = currentLine.from + lineFoldMatch.index;
+
+			// Find the next line with a line fold marker
+			for (let i = currentLine.number + 1; i <= state.doc.lines; i++) {
+				const nextLine = state.doc.line(i);
+				lineFoldRegex.lastIndex = 0;
+				let nextMatch = lineFoldRegex.exec(nextLine.text);
+				if (nextMatch) {
+					// Found matching line fold marker
+					return {
+						from: markerPos, // Start from the marker position, not end of line
+						to: nextLine.to, // End at the end of the matched line, not the beginning
+					};
+				}
+			}
+		}
+	}
+
+	// If cursor isn't on a start marker, no fold can be done
 	if (!cursorOnStartMark || cursorStartPos === null) {
 		return null;
 	}
 
 	// Initialize stack with our current start marker
-	startStack.push(cursorStartPos);
+	startStack.push({ pos: cursorStartPos, isLineFold });
 
 	// Start from the current line and search for matching end marker
 	for (let i = currentLine.number; i <= state.doc.lines; i++) {
@@ -237,13 +298,16 @@ function findMatchingFoldRange(
 			while ((startMatch = startRegex.exec(line.text)) !== null) {
 				const startPos = line.from + startMatch.index;
 				if (startPos > cursorStartPos) {
-					startStack.push(startPos);
+					startStack.push({ pos: startPos, isLineFold: false });
 				}
 			}
 		} else {
 			// On subsequent lines, consider all start markers
 			while ((startMatch = startRegex.exec(line.text)) !== null) {
-				startStack.push(line.from + startMatch.index);
+				startStack.push({
+					pos: line.from + startMatch.index,
+					isLineFold: false,
+				});
 			}
 		}
 
@@ -256,11 +320,11 @@ function findMatchingFoldRange(
 			// If there's a start in the stack, match it
 			if (startStack.length > 0) {
 				// Get the most recent start position
-				const startPos = startStack.pop()!;
+				const startInfo = startStack.pop()!;
 
 				// If this was our cursor's start position, we've found our match
-				if (startPos === cursorStartPos) {
-					return { from: startPos, to: endPosition };
+				if (startInfo.pos === cursorStartPos) {
+					return { from: startInfo.pos, to: endPosition };
 				}
 			}
 		}
@@ -277,9 +341,11 @@ export function getAllFoldableRanges(
 
 	const startRegex = new RegExp(settings.startMarker, "g");
 	const endRegex = new RegExp(settings.endMarker, "g");
+	const lineFoldRegex = new RegExp(settings.lineFoldMarker + "\\s*$", "g");
 
 	let ranges: { from: number; to: number }[] = [];
-	let startStack: { pos: number; depth: number }[] = [];
+	let startStack: { pos: number; depth: number; isLineFold: boolean }[] = [];
+	let lineFoldMarkerPositions: { lineNum: number; pos: number }[] = []; // Track line numbers and positions with line fold markers
 	let depth = 0;
 
 	for (let i = 1; i <= state.doc.lines; i++) {
@@ -288,8 +354,32 @@ export function getAllFoldableRanges(
 		// Reset regular expressions
 		startRegex.lastIndex = 0;
 		endRegex.lastIndex = 0;
+		lineFoldRegex.lastIndex = 0;
 
-		// First, collect all markers in this line in order
+		// Check for lineFold marker at the end of the line
+		let lineFoldMatch = lineFoldRegex.exec(line.text);
+		if (lineFoldMatch) {
+			// Calculate the actual position of the marker
+			const markerPos = line.from + lineFoldMatch.index;
+
+			// If this is the second occurrence of a line fold marker
+			if (lineFoldMarkerPositions.length > 0) {
+				const startInfo = lineFoldMarkerPositions.pop()!;
+
+				// Add range from the marker position in start line to the end of the current line
+				if (startInfo.lineNum < i) {
+					ranges.push({
+						from: startInfo.pos, // Position of the start marker
+						to: line.to, // End of the line with the end marker
+					});
+				}
+			} else {
+				// First occurrence of line fold marker - remember this line number and position
+				lineFoldMarkerPositions.push({ lineNum: i, pos: markerPos });
+			}
+		}
+
+		// First, collect all regular markers in this line
 		interface Marker {
 			type: "start" | "end";
 			pos: number;
@@ -325,7 +415,11 @@ export function getAllFoldableRanges(
 		for (const marker of markers) {
 			if (marker.type === "start") {
 				// Push start position onto stack with current depth
-				startStack.push({ pos: marker.pos, depth: depth });
+				startStack.push({
+					pos: marker.pos,
+					depth: depth,
+					isLineFold: false,
+				});
 				depth++;
 			} else if (marker.type === "end" && startStack.length > 0) {
 				// Decrement depth
@@ -338,9 +432,9 @@ export function getAllFoldableRanges(
 
 				if (startIndex !== -1) {
 					const startInfo = startStack[startIndex];
-
-					// Add the range
 					const endPos = marker.pos + marker.length;
+
+					// Regular fold - use marker positions
 					ranges.push({ from: startInfo.pos, to: endPos });
 
 					// Remove this start marker and any after it (which would be unpaired)
@@ -408,6 +502,7 @@ export const loadFoldAnyWhereSettings = (settings: FoldAnyWhereSettings) => {
 		FoldAnywhereConfigFacet.of({
 			startMarker: settings.startMarker,
 			endMarker: settings.endMarker,
+			lineFoldMarker: settings.lineFoldMarker,
 			autoFoldOnLoad: settings.autoFoldOnLoad,
 		})
 	);
@@ -446,6 +541,51 @@ export function unfoldAll(view: EditorView) {
 	);
 	if (ranges.length > 0) {
 		const effects = ranges.map((range) => unfoldEffect.of(range));
+		view.dispatch({ effects });
+	}
+}
+
+export function foldAllLineRegions(view: EditorView) {
+	const state = view.state;
+	const settings = state.facet(FoldAnywhereConfigFacet);
+
+	const lineFoldRegex = new RegExp(settings.lineFoldMarker + "\\s*$", "g");
+
+	let lineFoldRanges: { from: number; to: number }[] = [];
+	let lineFoldStack: { lineNum: number; pos: number }[] = []; // Track lines with line fold markers
+
+	// Find all line fold regions
+	for (let i = 1; i <= state.doc.lines; i++) {
+		const line = state.doc.line(i);
+
+		// Reset regular expression
+		lineFoldRegex.lastIndex = 0;
+
+		// Find line fold markers at the end of this line
+		let lineFoldMatch = lineFoldRegex.exec(line.text);
+		if (lineFoldMatch) {
+			// Calculate the position of the marker
+			const markerPos = line.from + lineFoldMatch.index;
+
+			if (lineFoldStack.length > 0) {
+				// We found a matching pair - the second line fold marker
+				const startInfo = lineFoldStack.pop()!;
+
+				// Add range from the marker position to the end of the current line
+				lineFoldRanges.push({
+					from: startInfo.pos,
+					to: line.to,
+				});
+			} else {
+				// This is the first line fold marker in a pair
+				lineFoldStack.push({ lineNum: i, pos: markerPos });
+			}
+		}
+	}
+
+	// Apply all line fold ranges
+	if (lineFoldRanges.length > 0) {
+		const effects = lineFoldRanges.map((range) => foldEffect.of(range));
 		view.dispatch({ effects });
 	}
 }

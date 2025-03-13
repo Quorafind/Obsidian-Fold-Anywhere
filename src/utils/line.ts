@@ -55,18 +55,12 @@ export const dealWithSelection = (
 	foldAll((editor as any).cm);
 };
 
-export const insertMark = (
-	insert: FoldAnyWhereSettings,
-	editor: Editor,
-	type: InsertMarkType
-) => {
+export const insertMark = (editor: Editor, marker: string) => {
 	const selection = editor.getSelection();
 	if (selection.trim().length > 0) return;
 
 	const { lineStart, lineEnd } = checkStartOrEnd(editor);
 	editor.replaceSelection(
-		(lineStart ? `` : ` `) +
-			(type === "start" ? insert.startMarker : insert.endMarker) +
-			(lineEnd ? (type === "start" ? ` ` : ``) : ` `)
+		(lineStart ? `` : ` `) + marker + (lineEnd ? ` ` : ` `)
 	);
 };
